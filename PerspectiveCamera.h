@@ -22,8 +22,8 @@ private:
 	DirectX::XMFLOAT3 m_up;
 	DirectX::XMFLOAT3 m_right;
 
-	DirectX::XMVECTOR DefaultForward{ 0.0f, 0.0f, 1.0f };
-	DirectX::XMVECTOR DefaultRight{ 1.0f, 0.0f, 0.0f };
+	DirectX::XMVECTORF32 DefaultForward{ 0.0f, 0.0f, 1.0f };
+	DirectX::XMVECTORF32 DefaultRight{ 1.0f, 0.0f, 0.0f };
 
 	float m_yaw;
 	float m_pitch;

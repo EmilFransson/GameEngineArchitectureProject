@@ -229,7 +229,7 @@ void PackageTool::PadTexture(PackagedTexture& tex, const BYTE* imgData, int chan
 			tex.dataVec.emplace_back(imgData[i + 0]);
 			tex.dataVec.emplace_back(imgData[i + 1]);
 			tex.dataVec.emplace_back(imgData[i + 2]);
-			tex.dataVec.emplace_back(0xFF);
+			tex.dataVec.emplace_back(static_cast<BYTE>(0xFF)); // SINCE STARTING PROJECT, added the static_cast.
 		}
 	}
 	else if (channels == 1)

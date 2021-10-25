@@ -175,8 +175,8 @@ LRESULT Window::HandleMessages(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam
 				m_cursorShow = !m_cursorShow;
 			}
 			*/
-			m_deltaMouseX = -raw->data.mouse.lLastX;
-			m_deltaMouseY = -raw->data.mouse.lLastY;
+			m_deltaMouseX = static_cast<float>(-raw->data.mouse.lLastX);
+			m_deltaMouseY = static_cast<float>(-raw->data.mouse.lLastY);
 		}
 		delete[] lpb;
 		
