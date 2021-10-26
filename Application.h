@@ -13,6 +13,8 @@
 #include "Model.h"
 #include "PoolAllocator.h"
 
+class ParticleSystem;
+
 #define TOKENPASTE(x, y) x ## y
 #define TOKENPASTE2(x, y) TOKENPASTE(x, y)
 #define PROFILE_FUNC Profiler TOKENPASTE2(profiler, __LINE__) (__FUNCTION__, [&](ProfileMetrics profileMetrics) {m_ProfileMetrics.push_back(std::move(profileMetrics));})
@@ -29,12 +31,15 @@ public:
 	Application() noexcept;
 	~Application() noexcept = default;
 	void Run() noexcept;
+	void Render3D(float, std::vector<ParticleSystem*>) noexcept;
+	void Render2D() noexcept;
 	void CleanUp();
 private:
 	void DisplayProfilingResults() noexcept;
 	void GetPackagePath() noexcept;
 	template<typename T>
 	void RenderPoolAllocatorProgressBar(std::unique_ptr<PoolAllocator<T>>& poolAllocator) noexcept;
+	void RenderStackAllocatorProgressBar() noexcept;
 private:
 	bool m_Running;
 	std::unique_ptr<Time> m_timer;
@@ -52,9 +57,17 @@ private:
 	std::unique_ptr<Quad> m_pQuad;
 	std::unique_ptr<Viewport> m_pViewport;
 	std::unique_ptr<PerspectiveCamera> m_pCamera;
-	std::unique_ptr<ConstantBuffer> m_pConstantBuffer;
 	std::vector<std::shared_ptr<MeshOBJ>> m_pBackPackMeshes;
 
+	//Stack variables
+	DirectX::XMMATRIX* m_pCurrentViewPerspectiveMatrix;
+	Transform* m_pTransform;
+	ConstantBuffer* m_pConstantBuffer;
+
+	std::vector<std::string> m_level1ModelNames;
+	std::vector<std::string> m_level1TextureNames;
+	std::vector<std::string> m_level2ModelNames;
+	std::vector<std::string> m_level2TextureNames;
 	bool level1;
 };
 

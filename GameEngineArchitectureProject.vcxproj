@@ -124,6 +124,7 @@
     <ClCompile Include="ObjectClasses.cpp" />
     <ClCompile Include="OBJ_Loader.cpp" />
     <ClCompile Include="PackageTool.cpp" />
+    <ClCompile Include="ParticleSystem.cpp" />
     <ClCompile Include="pch.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>
       <PrecompiledHeaderFile Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
@@ -141,6 +142,7 @@
     <ClCompile Include="Shader.cpp" />
     <ClCompile Include="InputLayout.cpp" />
     <ClCompile Include="Quad.cpp" />
+    <ClCompile Include="StackAllocator.cpp" />
     <ClCompile Include="Timer.cpp" />
     <ClCompile Include="Vertex.cpp" />
     <ClCompile Include="Stack.cpp" />
@@ -171,6 +173,7 @@
     <ClInclude Include="ObjectClasses.h" />
     <ClInclude Include="OBJ_Loader.h" />
     <ClInclude Include="PackageTool.h" />
+    <ClInclude Include="ParticleSystem.h" />
     <ClInclude Include="pch.h" />
     <ClInclude Include="PerspectiveCamera.h" />
     <ClInclude Include="PoolAllocator.h" />
