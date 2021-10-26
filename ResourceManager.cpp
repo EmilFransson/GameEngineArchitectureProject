@@ -17,6 +17,7 @@ std::deque<ResourceManager::JobHolder*> ResourceManager::m_tQueue;
 std::unique_ptr<PoolAllocator<Texture2D>> ResourceManager::m_pTextureAllocator = std::make_unique<PoolAllocator<Texture2D>>("TextureAllocator", 10);
 std::unique_ptr<PoolAllocator<MeshOBJ>> ResourceManager::m_pMeshOBJAllocator = std::make_unique<PoolAllocator<MeshOBJ>>("MeshOBJAllocator", 1000);
 std::unique_ptr<PoolAllocator<Material>> ResourceManager::m_pMaterialAllocator = std::make_unique<PoolAllocator<Material>>("MaterialAllocator", 100);
+BuddyAllocator ResourceManager::buddyAllocator = BuddyAllocator();
 
 void ResourceManager::Init()
 {
@@ -533,4 +534,9 @@ void ResourceManager::tShutdown()
 	m_tWorkers.clear();
 
 	//stopped = true;
+}
+
+void ResourceManager::buddy_free(void* ptr)
+{
+	buddyAllocator.free(ptr);
 }
