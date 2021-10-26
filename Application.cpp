@@ -104,7 +104,9 @@ void Application::Run() noexcept
 		UI::BeginDockSpace();
 		//Windows part of the dock space goes here:
 		GetPackagePath();
-
+		RenderPoolAllocatorProgressBar(ResourceManager::m_pTextureAllocator);
+		RenderPoolAllocatorProgressBar(ResourceManager::m_pMaterialAllocator);
+		RenderPoolAllocatorProgressBar(ResourceManager::m_pMeshOBJAllocator);
 		//Can be reinstated if we'd need it for any assignment3-profiling.
 		//DisplayProfilingResults();
 		//...And ends here.

@@ -48,9 +48,10 @@ private:
 	std::map<std::pair<uint64_t, uint64_t>, std::shared_ptr<Resource>> m_GUIDToResourceMap;
 	std::map<std::pair<uint64_t, uint64_t>, std::string> m_GUIDToPackageMap;
 	std::map<std::string, std::vector<std::string>> m_OBJToMeshesMap;
-	uint64_t m_CurrentByteSize = 0u;
-	uint64_t m_MaxByteSize = 8000u;
-	static std::unique_ptr<PoolAllocator<Texture2D>> m_pResourceAllocator;
+public:
+	static std::unique_ptr<PoolAllocator<Texture2D>> m_pTextureAllocator;
+	static std::unique_ptr<PoolAllocator<MeshOBJ>> m_pMeshOBJAllocator;
+	static std::unique_ptr<PoolAllocator<Material>> m_pMaterialAllocator;
 private:
 
 	struct JobHolder

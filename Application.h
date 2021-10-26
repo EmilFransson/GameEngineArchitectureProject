@@ -33,6 +33,8 @@ public:
 private:
 	void DisplayProfilingResults() noexcept;
 	void GetPackagePath() noexcept;
+	template<typename T>
+	void RenderPoolAllocatorProgressBar(std::unique_ptr<PoolAllocator<T>>& poolAllocator) noexcept;
 private:
 	bool m_Running;
 	std::unique_ptr<Time> m_timer;
@@ -55,3 +57,28 @@ private:
 
 	bool level1;
 };
+
+template<typename T>
+void Application::RenderPoolAllocatorProgressBar(std::unique_ptr<PoolAllocator<T>>& poolAllocator) noexcept
+{
+	ImGui::Begin("Pool Allocator memory usage");
+	ImGui::Text("Tag:");
+	ImGui::SameLine();
+	ImGui::Text(poolAllocator->GetTag());
+	static float progress = 0.0f;
+
+	progress = static_cast<float>(poolAllocator->GetByteUsage() / static_cast<float>(poolAllocator->GetByteCapacity()));
+	progress = 1.0f - progress;
+
+	ImGui::ProgressBar(progress, ImVec2(0.0f, 0.0f));
+	ImGui::SameLine(0.0f, ImGui::GetStyle().ItemInnerSpacing.x);
+	ImGui::Text("Bytes free.");
+
+	char buf[64];
+#pragma warning(disable:4996)
+	sprintf(buf, "%d/%d", (int)((poolAllocator->GetEntityCapacity() - poolAllocator->GetEntityUsage())), (int)(poolAllocator->GetEntityCapacity()));
+	ImGui::ProgressBar(progress, ImVec2(0.0f, 0.0f), buf);
+	ImGui::SameLine(0.0f, ImGui::GetStyle().ItemInnerSpacing.x);
+	ImGui::Text("Entity chunks available.");
+	ImGui::End();
+}
