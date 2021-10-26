@@ -3,7 +3,7 @@
 class Texture : public Resource
 {
 public:
-	Texture(const uint32_t width, const uint32_t height, std::string fileName) noexcept;
+	Texture(const uint32_t width, const uint32_t height, std::string fileName, std::string type) noexcept;
 	virtual ~Texture() noexcept override = default;
 	virtual void BindAsShaderResource(const uint8_t slot = 0u) noexcept = 0;
 protected:
@@ -17,7 +17,7 @@ protected:
 class Texture2D : public Texture
 {
 public:
-	Texture2D(const uint32_t width, const uint32_t height, const uint32_t rowPitch, void* pData, const DXGI_FORMAT textureFormat, std::string fileName) noexcept;
+	Texture2D(const uint32_t width, const uint32_t height, const uint32_t rowPitch, void* pData, const DXGI_FORMAT textureFormat, std::string fileName, std::string type) noexcept;
 	virtual ~Texture2D() noexcept override = default;
 	[[nodiscard]] static std::shared_ptr<Texture2D> Create(const std::string& filePath) noexcept;
 	virtual void BindAsShaderResource(const uint8_t slot = 0u) noexcept override;

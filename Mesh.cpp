@@ -5,13 +5,13 @@
 #include "Utility.h"
 #include "ResourceManager.h"
 
-Mesh::Mesh(const std::string& assetName) noexcept
-	: Resource{assetName}
+Mesh::Mesh(const std::string& assetName, std::string type) noexcept
+	: Resource{assetName, type}
 {
 }
 
-MeshOBJ::MeshOBJ(const std::vector<objl::Vertex>& vertices, const std::vector<unsigned int> indices, const std::shared_ptr<Material>& pMaterial, std::string fileName) noexcept
-	: Mesh{fileName},
+MeshOBJ::MeshOBJ(const std::vector<objl::Vertex>& vertices, const std::vector<unsigned int> indices, const std::shared_ptr<Material>& pMaterial, std::string fileName, std::string type) noexcept
+	: Mesh{fileName, type},
 	  m_NrOfIndices{ indices.size() }, 
 	  m_Strides{ sizeof(objl::Vertex)}, 
 	  m_pMaterial{pMaterial}, 

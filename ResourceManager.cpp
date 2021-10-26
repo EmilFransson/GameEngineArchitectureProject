@@ -2,6 +2,7 @@
 #include "ResourceManager.h"
 #include "PackageTool.h"
 #include "OBJ_Loader.h"
+#include "UI.h"
 
 /* Include low level I/O */
 #include <io.h>
@@ -15,8 +16,10 @@ std::condition_variable ResourceManager::m_tCondition;
 bool ResourceManager::m_tTerminate;
 std::deque<ResourceManager::JobHolder*> ResourceManager::m_tQueue;
 std::unique_ptr<PoolAllocator<Texture2D>> ResourceManager::m_pTextureAllocator = std::make_unique<PoolAllocator<Texture2D>>("TextureAllocator", 10);
-std::unique_ptr<PoolAllocator<MeshOBJ>> ResourceManager::m_pMeshOBJAllocator = std::make_unique<PoolAllocator<MeshOBJ>>("MeshOBJAllocator", 1000);
+std::unique_ptr<PoolAllocator<MeshOBJ>> ResourceManager::m_pMeshOBJAllocator = std::make_unique<PoolAllocator<MeshOBJ>>("MeshOBJAllocator", 100);
 std::unique_ptr<PoolAllocator<Material>> ResourceManager::m_pMaterialAllocator = std::make_unique<PoolAllocator<Material>>("MaterialAllocator", 100);
+BuddyAllocator ResourceManager::buddyAllocator = BuddyAllocator();
+ResourceManager::BuddyFree ResourceManager::buddyFree = {};
 
 void ResourceManager::Init()
 {
@@ -58,6 +61,98 @@ void ResourceManager::FreeMemory() noexcept
 	{
 		m_GUIDToResourceMap.erase(key);
 	}
+}
+
+void ResourceManager::DisplayStateUI()
+{
+	std::vector<std::pair<std::string, long>> textures;
+	std::vector<std::pair<std::string, long>> meshes;
+	std::vector<std::pair<std::string, long>> materials;
+	for (auto it = s_Instance->m_GUIDToResourceMap.begin(); it != s_Instance->m_GUIDToResourceMap.end(); ++it)
+	{
+		std::pair<std::string, long> pair;
+		pair.first = it->second->GetName();
+		pair.second = it->second.use_count() - 1;
+		if (it->second->GetType() == "TEX")
+		{
+			textures.push_back(pair);
+		}
+		else if (it->second->GetType() == "MESH")
+		{
+			meshes.push_back(pair);
+		}
+		else // is of type mat
+		{
+			materials.push_back(pair);
+		}
+	}
+
+	static bool texturePressed = true;
+	static bool meshPressed = true;
+	static bool materialPressed = true;
+	ImGui::Begin("Resource Manager");
+	ImGui::Checkbox("Textures", &texturePressed);
+	ImGui::SameLine();
+	ImGui::Checkbox("Meshes", &meshPressed);
+	ImGui::SameLine();
+	ImGui::Checkbox("Materials", &materialPressed);
+
+	if (texturePressed == true && !textures.empty())
+	{
+		ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.0f, 1.0f, 1.0f, 1.0f));
+		ImGui::Text("TEXTURES:");
+		ImGui::PopStyleColor();
+		for (auto& texture : textures)
+		{
+			ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.0f, 1.0f, 0.0f, 1.0f));
+			ImGui::Text(texture.first.c_str());
+			ImGui::PopStyleColor();
+			ImGui::SameLine();
+			ImGui::Text(":");
+			ImGui::Text("Resourcetype: Texture");
+			ImGui::Text("References:");
+			ImGui::SameLine();
+			ImGui::Text("%d", texture.second);
+		}
+	}
+	
+	if (meshPressed == true && !meshes.empty())
+	{
+		ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.0f, 1.0f, 1.0f, 1.0f));
+		ImGui::Text("MESHES:");
+		ImGui::PopStyleColor();
+		for (auto& mesh : meshes)
+		{
+			ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.0f, 1.0f, 0.0f, 1.0f));
+			ImGui::Text(mesh.first.c_str());
+			ImGui::PopStyleColor();
+			ImGui::SameLine();
+			ImGui::Text(":");
+			ImGui::Text("Resourcetype: Mesh");
+			ImGui::Text("References:");
+			ImGui::SameLine();
+			ImGui::Text("%d", mesh.second);
+		}
+	}
+	if (materialPressed == true && !materials.empty())
+	{
+		ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.0f, 1.0f, 1.0f, 1.0f));
+		ImGui::Text("MATERIALS:");
+		ImGui::PopStyleColor();
+		for (auto& material : materials)
+		{
+			ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.0f, 1.0f, 0.0f, 1.0f));
+			ImGui::Text(material.first.c_str());
+			ImGui::PopStyleColor();
+			ImGui::SameLine();
+			ImGui::Text(":");
+			ImGui::Text("Resourcetype: Mesh");
+			ImGui::Text("References:");
+			ImGui::SameLine();
+			ImGui::Text("%d", material.second);
+		}
+	}
+	ImGui::End();
 }
 
 template<>
@@ -119,7 +214,7 @@ std::shared_ptr<MeshOBJ> ResourceManager::Load(const std::pair<uint64_t, uint64_
 			PackageTool::ChunkHeader chunkHeader{};
 			bytes_read = _read(package_fd, (char*)&chunkHeader, sizeof(PackageTool::ChunkHeader));
 
-			std::unique_ptr<char> objName = std::unique_ptr<char>(DBG_NEW char[chunkHeader.readableSize + 1](0));
+			auto objName = std::unique_ptr<char, BuddyFree>(buddyAllocator.calloc<char>(chunkHeader.readableSize + 1), buddyFree);
 			bytes_read = _read(package_fd, objName.get(), static_cast<unsigned int>(chunkHeader.readableSize));
 			//_lseek(package_fd, static_cast<long>(chunkHeader.readableSize), SEEK_CUR); // Skip readable name
 
@@ -145,19 +240,20 @@ std::shared_ptr<MeshOBJ> ResourceManager::Load(const std::pair<uint64_t, uint64_
 							std::cout << "Error: Cannot create resource. Unable to free enough memory.\n";
 							return nullptr;
 						}
+						
 					}
 					if (strcmp(meshHeader.materialName, "") != 0)
 					{
 						m_GUIDToResourceMap[guid] = dynamic_pointer_cast<Resource>(std::shared_ptr<MeshOBJ>(m_pMeshOBJAllocator->New(vertices,
 																				   indices, 
 																				   Load<Material>(ConvertGUIDToPair(m_FileNameToGUIDMap[meshHeader.materialName])),
-																				   objName.get()), [](MeshOBJ* pData) {
+																				   meshHeader.meshName, "MESH"), [](MeshOBJ* pData) {
 																				   m_pMeshOBJAllocator->Delete(pData);
 																					}));
 					}
 					else
 					{
-						m_GUIDToResourceMap[guid] = dynamic_pointer_cast<Resource>(std::shared_ptr<MeshOBJ>(m_pMeshOBJAllocator->New(vertices, indices, nullptr, objName.get()), 
+						m_GUIDToResourceMap[guid] = dynamic_pointer_cast<Resource>(std::shared_ptr<MeshOBJ>(m_pMeshOBJAllocator->New(vertices, indices, nullptr, meshHeader.meshName, "MESH"),
 																				   [](MeshOBJ* pData){
 																				   m_pMeshOBJAllocator->Delete(pData);
 																					}));
@@ -237,7 +333,7 @@ std::shared_ptr<Material> ResourceManager::Load(const std::pair<uint64_t, uint64
 				}
 				PackageTool::SMaterial material{};
 				bytes_read = _read(package_fd, (char*)&material, materialHeader.dataSize);
-				m_GUIDToResourceMap[guid] = dynamic_pointer_cast<Resource>(std::shared_ptr<Material>(m_pMaterialAllocator->New(material, materialHeader.materialName), 
+				m_GUIDToResourceMap[guid] = dynamic_pointer_cast<Resource>(std::shared_ptr<Material>(m_pMaterialAllocator->New(material, materialHeader.materialName, "MAT"),
 																								     [](Material* pData) {
 																									 m_pMaterialAllocator->Delete(pData);
 																												}));
@@ -260,11 +356,11 @@ const bool ResourceManager::LoadResourceFromPackage(const std::pair<uint64_t, ui
 		int bytes_read = _read(package_fd, (char*)&packageHeader, sizeof(PackageTool::PackageHeader));
 		bool foundAsset = false;
 		PackageTool::ChunkHeader chunkHeader{};
-		std::unique_ptr<char> pAssetFileName;
+		std::unique_ptr<char, BuddyFree> pAssetFileName;
 		for (uint32_t i{ 0u }; i < packageHeader.assetCount && foundAsset == false; ++i)
 		{
 			bytes_read = _read(package_fd, (char*)&chunkHeader, sizeof(PackageTool::ChunkHeader));
-			pAssetFileName = std::unique_ptr<char>(DBG_NEW char[chunkHeader.readableSize + 1](0));
+			pAssetFileName = std::unique_ptr<char, BuddyFree>(buddyAllocator.calloc<char>(chunkHeader.readableSize + 1), buddyFree);
 			bytes_read = _read(package_fd, pAssetFileName.get(), static_cast<unsigned int>(chunkHeader.readableSize));
 			if (ConvertGUIDToPair(chunkHeader.guid) == guid)
 			{
@@ -279,7 +375,7 @@ const bool ResourceManager::LoadResourceFromPackage(const std::pair<uint64_t, ui
 		{
 			PackageTool::TextureHeader textureHeader{};
 			bytes_read = _read(package_fd, (char*)&textureHeader, sizeof(PackageTool::TextureHeader));
-			std::unique_ptr<char> textureBuffer = std::unique_ptr<char>(DBG_NEW char[textureHeader.dataSize]);
+			auto textureBuffer = std::unique_ptr<char, BuddyFree>(buddyAllocator.alloc<char>(textureHeader.dataSize), buddyFree);
 			bytes_read = _read(package_fd, textureBuffer.get(), textureHeader.dataSize);
 
 			if (m_pTextureAllocator->GetByteUsage() + sizeof(Texture2D) > m_pTextureAllocator->GetByteCapacity())
@@ -299,7 +395,7 @@ const bool ResourceManager::LoadResourceFromPackage(const std::pair<uint64_t, ui
 																									  textureHeader.rowPitch,
 																									  textureBuffer.get(),
 																									  DXGI_FORMAT::DXGI_FORMAT_R8G8B8A8_UNORM,
-																									  pAssetFileName.get()), [](Texture2D* pData) {
+																									  pAssetFileName.get(), "TEX"), [](Texture2D* pData) {
 																									  	m_pTextureAllocator->Delete(pData);
 																									  }));
 			}
@@ -310,7 +406,7 @@ const bool ResourceManager::LoadResourceFromPackage(const std::pair<uint64_t, ui
 																									  textureHeader.rowPitch,
 																									  textureBuffer.get(),
 																									  DXGI_FORMAT::DXGI_FORMAT_BC7_UNORM_SRGB,
-																									  pAssetFileName.get()),[](Texture2D* pData) {
+																									  pAssetFileName.get(), "TEX"), [](Texture2D* pData) {
 																									  	m_pTextureAllocator->Delete(pData);
 																									  }));
 			}
@@ -337,7 +433,7 @@ void ResourceManager::MapPackageContent() noexcept
 			{
 				PackageTool::ChunkHeader chkHdr{};
 				bytes_read = _read(package_fd, (char*)&chkHdr, sizeof(PackageTool::ChunkHeader));
-				std::unique_ptr<char> fileName = std::unique_ptr<char>(DBG_NEW char[chkHdr.readableSize + 1](0));
+				auto fileName = std::unique_ptr<char, BuddyFree>(buddyAllocator.calloc<char>(chkHdr.readableSize+1), buddyFree);
 				bytes_read = _read(package_fd, fileName.get(), static_cast<unsigned int>(chkHdr.readableSize));
 				if (memcmp(chkHdr.type, "MESH", 4) == 0)
 				{

@@ -4,7 +4,7 @@
 class Material : public Resource
 {
 public:
-	Material(const PackageTool::SMaterial& material, const std::string& assetName) noexcept;
+	Material(const PackageTool::SMaterial& material, const std::string& assetName, std::string type) noexcept;
 	virtual ~Material() noexcept override = default;
 private:
 	std::string m_FileName; // ?

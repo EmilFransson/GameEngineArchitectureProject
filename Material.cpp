@@ -1,8 +1,8 @@
 #include "pch.h"
 #include "Material.h"
 
-Material::Material(const PackageTool::SMaterial& material, const std::string& assetName) noexcept
-	: Resource{assetName},
+Material::Material(const PackageTool::SMaterial& material, const std::string& assetName, std::string type) noexcept
+	: Resource{assetName, type},
 	  m_FileName{material.fileName},
 	  m_Name{material.name},
 	  m_Ns{material.Ns},

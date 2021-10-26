@@ -21,6 +21,7 @@ public:
 	[[nodiscard]] const uint64_t GetByteCapacity() const noexcept;
 	[[nodiscard]] const uint64_t GetEntityUsage() const noexcept;
 	[[nodiscard]] const uint64_t GetEntityCapacity() const noexcept;
+	[[nodiscard]] const float GetPercentageUsed() const noexcept;
 	void FreeAllMemory(const std::vector<T*>& objects) noexcept;
 private:
 	PoolChunk<T>* m_pMemoryPool;
@@ -64,6 +65,9 @@ template<typename ...Arguments>
 T* PoolAllocator<T>::New(Arguments&&... args)
 {
 	std::lock_guard<std::mutex> lock(m_Lock);
+	if (GetPercentageUsed() >= 0.8f)
+		std::cout << "WARNING: Approaching ''" << m_Tag << "'':s allocation limit\n";
+
 	if (m_pHead == nullptr)
 		return nullptr;
 
@@ -117,6 +121,12 @@ template<class T>
 const uint64_t PoolAllocator<T>::GetEntityCapacity() const noexcept
 {
 	return m_MaxEntities;
+}
+
+template<class T>
+const float PoolAllocator<T>::GetPercentageUsed() const noexcept
+{
+	return static_cast<float>(m_UsedBytes) / static_cast<float>(m_BytesCapacity);
 }
 
 /*The vector and pool allocator must "match"!*/

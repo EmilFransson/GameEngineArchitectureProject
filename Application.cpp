@@ -236,6 +236,7 @@ void Application::Render2D() noexcept
 	RenderPoolAllocatorProgressBar(ResourceManager::m_pTextureAllocator);
 	RenderPoolAllocatorProgressBar(ResourceManager::m_pMaterialAllocator);
 	RenderPoolAllocatorProgressBar(ResourceManager::m_pMeshOBJAllocator);
+	ResourceManager::DisplayStateUI();
 	//Can be reinstated if we'd need it for any assignment3-profiling.
 	//DisplayProfilingResults();
 	//...And ends here.
