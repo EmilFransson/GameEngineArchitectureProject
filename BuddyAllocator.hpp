@@ -39,8 +39,9 @@ public:
 		delete[] this->mem;
 	};
 
+	template <class T>
 	[[nodiscard]]
-	void* alloc(size_t size)
+	T* alloc(size_t size)
 	{
 		std::scoped_lock<std::mutex> lk(this->lock);
 
@@ -55,8 +56,17 @@ public:
 		firstFree[lvl] = node->next;
 		splitBits[indexOf(node, lvl)] = false;
 
-		return reinterpret_cast<void*>(node);
+		return reinterpret_cast<T*>(node);
 	};
+
+	template <class T>
+	[[nodiscard]]
+	T* calloc(size_t size)
+	{
+		auto ptr = this->alloc<T>(size);
+		memset(ptr, 0, pow2Size(size));
+		return ptr;
+	}
 
 	void free(void* ptr, size_t size)
 	{
