@@ -22,7 +22,6 @@ public:
 	[[nodiscard]] const uint64_t GetEntityUsage() const noexcept;
 	[[nodiscard]] const uint64_t GetEntityCapacity() const noexcept;
 	void FreeAllMemory(const std::vector<T*>& objects) noexcept;
-
 private:
 	PoolChunk<T>* m_pMemoryPool;
 	PoolChunk<T>* m_pHead;
@@ -31,6 +30,7 @@ private:
 	uint64_t m_BytesCapacity;
 	uint64_t m_UsedBytes;
 	uint64_t m_NrOfEntities;
+	std::mutex m_Lock;
 };
 
 template<class T>
@@ -63,6 +63,7 @@ template<class T>
 template<typename ...Arguments>
 T* PoolAllocator<T>::New(Arguments&&... args)
 {
+	std::lock_guard<std::mutex> lock(m_Lock);
 	if (m_pHead == nullptr)
 		return nullptr;
 
@@ -78,6 +79,8 @@ T* PoolAllocator<T>::New(Arguments&&... args)
 template<class T>
 void PoolAllocator<T>::Delete(T* pData)
 {
+	using pointer = T*;
+	std::lock_guard<std::mutex> lock(m_Lock);
 	m_UsedBytes -= sizeof(T);
 	pData->~T();
 	PoolChunk<T>* poolChunk = reinterpret_cast<PoolChunk<T>*>(pData);
@@ -120,6 +123,7 @@ const uint64_t PoolAllocator<T>::GetEntityCapacity() const noexcept
 template<class T>
 void PoolAllocator<T>::FreeAllMemory(const std::vector<T*>& objects) noexcept
 {
+	std::lock_guard<std::mutex> lock(m_Lock);
 	for (uint64_t i{ 0u }; i < m_NrOfEntities; i++)
 	{
 		Delete(objects[i]);

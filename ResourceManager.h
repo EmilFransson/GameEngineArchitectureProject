@@ -2,6 +2,7 @@
 #include "Texture.h"
 #include "Mesh.h"
 #include "Material.h"
+#include "PoolAllocator.h"
 
 class ResourceManager
 {
@@ -49,6 +50,7 @@ private:
 	std::map<std::string, std::vector<std::string>> m_OBJToMeshesMap;
 	uint64_t m_CurrentByteSize = 0u;
 	uint64_t m_MaxByteSize = 8000u;
+	static std::unique_ptr<PoolAllocator<Texture2D>> m_pResourceAllocator;
 private:
 
 	struct JobHolder

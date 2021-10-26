@@ -14,6 +14,7 @@ std::mutex ResourceManager::m_tQueueMutex;
 std::condition_variable ResourceManager::m_tCondition;
 bool ResourceManager::m_tTerminate;
 std::deque<ResourceManager::JobHolder*> ResourceManager::m_tQueue;
+std::unique_ptr<PoolAllocator<Texture2D>> ResourceManager::m_pResourceAllocator = std::make_unique<PoolAllocator<Texture2D>>("ResourceAllocator", 1000);
 
 void ResourceManager::Init()
 {
@@ -36,6 +37,20 @@ void ResourceManager::Init()
 void ResourceManager::CleanUp()
 {
 	tShutdown();
+	for (auto it = s_Instance->m_GUIDToResourceMap.begin(); it != s_Instance->m_GUIDToResourceMap.end(); ++it)
+	{
+		std::string name = it->second->GetName();
+		if (name.find_first_of(".") != std::string::npos)
+		{
+			name = name.substr(name.find_first_of("."), name.size() - 1);
+			if (name == ".png" || name == ".jpg")
+			{
+				m_pResourceAllocator->Delete(dynamic_pointer_cast<Texture2D>(it->second).get());
+			}
+		}
+
+	}
+
 	delete s_Instance;
 }
 
@@ -66,6 +81,13 @@ void ResourceManager::FreeMemory() noexcept
 	}
 	for (auto& key : keys)
 	{
+		std::string name = m_GUIDToResourceMap[key]->GetName();
+		name = name.substr(name.find_first_of("."), name.size() - 1);
+		if (name == ".png" || name == ".jpg")
+		{
+			m_pResourceAllocator->Delete(dynamic_pointer_cast<Texture2D>(m_GUIDToResourceMap[key]).get());
+
+		}
 		m_GUIDToResourceMap.erase(key);
 	}
 }
@@ -110,9 +132,6 @@ std::shared_ptr<Texture2D> ResourceManager::Load(const std::pair<uint64_t, uint6
 			}
 		}
 	}
-
-	
-
 	return nullptr; //Should never be reached.
 }
 
@@ -305,21 +324,37 @@ const bool ResourceManager::LoadResourceFromPackage(const std::pair<uint64_t, ui
 			std::cout << "Current Byte size: " << m_CurrentByteSize << "\n";
 			if (memcmp(textureHeader.textureType, "NORM", 4) == 0) //Normal uncompressed texture type:
 			{
-				m_GUIDToResourceMap[guid] = dynamic_pointer_cast<Resource>(std::make_shared<Texture2D>(textureHeader.width,
-																 textureHeader.height,
-																 textureHeader.rowPitch,
-																 textureBuffer.get(),
-																 DXGI_FORMAT::DXGI_FORMAT_R8G8B8A8_UNORM,
-																 pAssetFileName.get()));
+				m_GUIDToResourceMap[guid] = dynamic_pointer_cast<Resource>(std::shared_ptr<Texture2D>(m_pResourceAllocator->New(textureHeader.width,
+																									  textureHeader.height,
+																									  textureHeader.rowPitch,
+																									  textureBuffer.get(),
+																									  DXGI_FORMAT::DXGI_FORMAT_R8G8B8A8_UNORM,
+					pAssetFileName.get()), [](Texture2D*) {
+					
+					}));
+
+				//m_GUIDToResourceMap[guid] = dynamic_pointer_cast<Resource>(std::make_shared<Texture2D>(textureHeader.width,
+				//												 textureHeader.height,
+				//												 textureHeader.rowPitch,
+				//												 textureBuffer.get(),
+				//												 DXGI_FORMAT::DXGI_FORMAT_R8G8B8A8_UNORM,
+				//												 pAssetFileName.get()));
 			}
 			else //Compressed texture type:
 			{
-				m_GUIDToResourceMap[guid] = dynamic_pointer_cast<Resource>(std::make_shared<Texture2D>(textureHeader.width,
-																 textureHeader.height,
-																 textureHeader.rowPitch,
-																 textureBuffer.get(),
-																 DXGI_FORMAT::DXGI_FORMAT_BC7_UNORM_SRGB,
-																 pAssetFileName.get()));
+				m_GUIDToResourceMap[guid] = dynamic_pointer_cast<Resource>(std::shared_ptr<Texture2D>(m_pResourceAllocator->New(textureHeader.width,
+					textureHeader.height,
+					textureHeader.rowPitch,
+					textureBuffer.get(),
+					DXGI_FORMAT::DXGI_FORMAT_BC7_UNORM_SRGB,
+					pAssetFileName.get()),[](Texture2D*) {}));
+
+				//m_GUIDToResourceMap[guid] = dynamic_pointer_cast<Resource>(std::make_shared<Texture2D>(textureHeader.width,
+				//												 textureHeader.height,
+				//												 textureHeader.rowPitch,
+				//												 textureBuffer.get(),
+				//												 DXGI_FORMAT::DXGI_FORMAT_BC7_UNORM_SRGB,
+				//												 pAssetFileName.get()));
 			}
 		}
 		_close(package_fd);
