@@ -5,7 +5,7 @@
 class Mesh : public Resource
 {
 public:
-	Mesh(const std::string& assetName) noexcept;
+	Mesh(const std::string& assetName, std::string type) noexcept;
 	virtual ~Mesh() noexcept override = default;
 	virtual void BindInternals(const uint8_t slot = 0u) noexcept = 0;
 protected:
@@ -16,7 +16,7 @@ protected:
 class MeshOBJ : public Mesh 
 {
 public:
-	MeshOBJ(const std::vector<objl::Vertex>& vertices, const std::vector<unsigned int> indices, const std::shared_ptr<Material>& pMaterial = nullptr, std::string fileName = "?") noexcept;
+	MeshOBJ(const std::vector<objl::Vertex>& vertices, const std::vector<unsigned int> indices, const std::shared_ptr<Material>& pMaterial = nullptr, std::string fileName = "?", std::string type = "?") noexcept;
 	virtual ~MeshOBJ() noexcept override = default;
 	virtual void BindInternals(const uint8_t slot = 0u) noexcept override;
 	[[nodiscard]] static std::vector<std::shared_ptr<MeshOBJ>> Create(std::string& fileName) noexcept;

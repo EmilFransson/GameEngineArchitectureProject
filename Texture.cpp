@@ -5,8 +5,8 @@
 #include "ResourceManager.h"
 #include "Utility.h"
 
-Texture::Texture(const uint32_t width, const uint32_t height, std::string fileName) noexcept
-	:Resource{fileName},
+Texture::Texture(const uint32_t width, const uint32_t height, std::string fileName, std::string type) noexcept
+	:Resource{fileName, type},
 	m_pShaderResourceView{ nullptr },
 	m_Width{ width },
 	m_Height{ height },
@@ -14,8 +14,8 @@ Texture::Texture(const uint32_t width, const uint32_t height, std::string fileNa
 {
 }
 
-Texture2D::Texture2D(const uint32_t width, const uint32_t height, const uint32_t rowPitch, void* pData, const DXGI_FORMAT textureFormat, std::string fileName) noexcept
-	: Texture{ width, height, fileName },
+Texture2D::Texture2D(const uint32_t width, const uint32_t height, const uint32_t rowPitch, void* pData, const DXGI_FORMAT textureFormat, std::string fileName, std::string type) noexcept
+	: Texture{ width, height, fileName, type },
 	m_pTexture2D{ nullptr },
 	m_pSamplerState{ nullptr }
 {

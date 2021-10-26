@@ -52,6 +52,7 @@ public:
 	static std::unique_ptr<PoolAllocator<Texture2D>> m_pTextureAllocator;
 	static std::unique_ptr<PoolAllocator<MeshOBJ>> m_pMeshOBJAllocator;
 	static std::unique_ptr<PoolAllocator<Material>> m_pMaterialAllocator;
+	static void DisplayStateUI();
 private:
 
 	struct JobHolder

@@ -1,4 +1,5 @@
 mtllib cube.mtl
+o CubeLevel1
 v -1.0 1.0 -1.0
 v 1.0 1.0 -1.0
 v 1.0 -1.0 -1.0
