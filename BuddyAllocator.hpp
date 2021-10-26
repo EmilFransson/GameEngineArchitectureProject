@@ -22,7 +22,8 @@ private:
 	};
 private:
 	Node* firstFree[LEVELS] = {nullptr};
-	std::bitset<(1 << LEVELS) - 1> freeBits = {true};
+	std::bitset<(1 << LEVELS) - 1> freeBits = {true};  // One bit per block keeping track of whether it's free or not
+	std::bitset<(1 << LEVELS) - 1> splitBits = {true}; // One bit per block keeping track of whether it's been split or not.
 	size_t unusedMemory = MAX_BLOCK;
 	std::mutex lock;
 
@@ -40,7 +41,7 @@ public:
 	[[nodiscard]]
 	void* alloc(size_t size)
 	{
-		std::scoped_lock<std::mutex> lock(this->lock);
+		std::scoped_lock<std::mutex> lk(this->lock);
 
 		if (size == 0 || size > MAX_BLOCK)
 			return nullptr;
@@ -56,7 +57,7 @@ public:
 
 	void free(void* ptr, size_t size)
 	{
-		std::scoped_lock<std::mutex> lock(this->lock);
+		std::scoped_lock<std::mutex> lk(this->lock);
 
 		if (!ptr) return; // freeing nullptr
 
@@ -140,6 +141,11 @@ private:
 
 	void mergeNode(Node* node, int level)
 	{
+		if (node == nullptr)
+		{
+			return;
+		}
+
 		const size_t index = indexOf(node, level);
 		freeBits[index] = true;
 
