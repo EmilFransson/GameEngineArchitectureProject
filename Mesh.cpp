@@ -65,3 +65,9 @@ std::vector<std::shared_ptr<MeshOBJ>> MeshOBJ::Create(std::string& fileName) noe
 {
 	return ResourceManager::Get()->LoadMultiple<MeshOBJ>(fileName);
 }
+
+const uint64_t MeshOBJ::GetNrOfIndices() const noexcept
+{
+	std::lock_guard<std::mutex> lock(ResourceManager::Get()->m_FilenameToMutexMap[m_FileName]);
+	return m_NrOfIndices;
+}

@@ -20,7 +20,7 @@ public:
 	virtual ~MeshOBJ() noexcept override = default;
 	virtual void BindInternals(const uint8_t slot = 0u) noexcept override;
 	[[nodiscard]] static std::vector<std::shared_ptr<MeshOBJ>> Create(std::string& fileName) noexcept;
-	[[nodiscard]] const uint64_t GetNrOfIndices() const noexcept { return m_NrOfIndices; }
+	[[nodiscard]] const uint64_t GetNrOfIndices() const noexcept;
 private:
 	std::string m_FileName; //File it comes from.
 	uint64_t m_NrOfIndices;

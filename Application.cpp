@@ -81,6 +81,7 @@ Application::Application() noexcept
 
 void Application::CleanUp()
 {
+	m_pModels.clear();
 	ResourceManager::Get()->CleanUp();
 	StackAllocator::GetInstance()->FreeAllMemory();
 }
@@ -166,6 +167,7 @@ void Application::Run() noexcept
 
 		if (!Window::OnUpdate())
 		{
+			m_pModels.clear();
 			m_Running = false;
 		}
 
@@ -174,7 +176,7 @@ void Application::Run() noexcept
 	}
 }
 
-void Application::Render3D(float delta, std::vector<ParticleSystem*> particleSystems) noexcept
+void Application::Render3D(float delta, std::vector<ParticleSystem*>& particleSystems) noexcept
 {
 	//For every model.
 	for (uint32_t i{ 0u }; i < m_pModels.size(); i++)
