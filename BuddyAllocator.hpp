@@ -31,7 +31,7 @@ private:
 public:
 	BuddyAllocator()
 	{
-		this->mem = new std::byte[MAX_BLOCK]();
+		this->mem = DBG_NEW std::byte[MAX_BLOCK]();
 		firstFree[0] = reinterpret_cast<Node*>(mem); // Its prev and next are auto nullptr
 	};
 	~BuddyAllocator()
