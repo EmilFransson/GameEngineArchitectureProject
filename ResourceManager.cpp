@@ -18,6 +18,9 @@ std::deque<ResourceManager::JobHolder*> ResourceManager::m_tQueue;
 std::unique_ptr<PoolAllocator<Texture2D>> ResourceManager::m_pTextureAllocator = std::make_unique<PoolAllocator<Texture2D>>("TextureAllocator", 10);
 std::unique_ptr<PoolAllocator<MeshOBJ>> ResourceManager::m_pMeshOBJAllocator = std::make_unique<PoolAllocator<MeshOBJ>>("MeshOBJAllocator", 100);
 std::unique_ptr<PoolAllocator<Material>> ResourceManager::m_pMaterialAllocator = std::make_unique<PoolAllocator<Material>>("MaterialAllocator", 100);
+BuddyAllocator ResourceManager::buddyAllocator = BuddyAllocator();
+ResourceManager::BuddyFree ResourceManager::buddyFree = {};
+
 void ResourceManager::Init()
 {
 	if (!s_Instance)
@@ -211,7 +214,7 @@ std::shared_ptr<MeshOBJ> ResourceManager::Load(const std::pair<uint64_t, uint64_
 			PackageTool::ChunkHeader chunkHeader{};
 			bytes_read = _read(package_fd, (char*)&chunkHeader, sizeof(PackageTool::ChunkHeader));
 
-			std::unique_ptr<char> objName = std::unique_ptr<char>(DBG_NEW char[chunkHeader.readableSize + 1](0));
+			auto objName = std::unique_ptr<char, BuddyFree>(buddyAllocator.calloc<char>(chunkHeader.readableSize + 1), buddyFree);
 			bytes_read = _read(package_fd, objName.get(), static_cast<unsigned int>(chunkHeader.readableSize));
 			//_lseek(package_fd, static_cast<long>(chunkHeader.readableSize), SEEK_CUR); // Skip readable name
 
@@ -353,11 +356,11 @@ const bool ResourceManager::LoadResourceFromPackage(const std::pair<uint64_t, ui
 		int bytes_read = _read(package_fd, (char*)&packageHeader, sizeof(PackageTool::PackageHeader));
 		bool foundAsset = false;
 		PackageTool::ChunkHeader chunkHeader{};
-		std::unique_ptr<char> pAssetFileName;
+		std::unique_ptr<char, BuddyFree> pAssetFileName;
 		for (uint32_t i{ 0u }; i < packageHeader.assetCount && foundAsset == false; ++i)
 		{
 			bytes_read = _read(package_fd, (char*)&chunkHeader, sizeof(PackageTool::ChunkHeader));
-			pAssetFileName = std::unique_ptr<char>(DBG_NEW char[chunkHeader.readableSize + 1](0));
+			pAssetFileName = std::unique_ptr<char, BuddyFree>(buddyAllocator.calloc<char>(chunkHeader.readableSize + 1), buddyFree);
 			bytes_read = _read(package_fd, pAssetFileName.get(), static_cast<unsigned int>(chunkHeader.readableSize));
 			if (ConvertGUIDToPair(chunkHeader.guid) == guid)
 			{
@@ -372,7 +375,7 @@ const bool ResourceManager::LoadResourceFromPackage(const std::pair<uint64_t, ui
 		{
 			PackageTool::TextureHeader textureHeader{};
 			bytes_read = _read(package_fd, (char*)&textureHeader, sizeof(PackageTool::TextureHeader));
-			std::unique_ptr<char> textureBuffer = std::unique_ptr<char>(DBG_NEW char[textureHeader.dataSize]);
+			auto textureBuffer = std::unique_ptr<char, BuddyFree>(buddyAllocator.alloc<char>(textureHeader.dataSize), buddyFree);
 			bytes_read = _read(package_fd, textureBuffer.get(), textureHeader.dataSize);
 
 			if (m_pTextureAllocator->GetByteUsage() + sizeof(Texture2D) > m_pTextureAllocator->GetByteCapacity())
@@ -430,7 +433,7 @@ void ResourceManager::MapPackageContent() noexcept
 			{
 				PackageTool::ChunkHeader chkHdr{};
 				bytes_read = _read(package_fd, (char*)&chkHdr, sizeof(PackageTool::ChunkHeader));
-				std::unique_ptr<char> fileName = std::unique_ptr<char>(DBG_NEW char[chkHdr.readableSize + 1](0));
+				auto fileName = std::unique_ptr<char, BuddyFree>(buddyAllocator.calloc<char>(chkHdr.readableSize+1), buddyFree);
 				bytes_read = _read(package_fd, fileName.get(), static_cast<unsigned int>(chkHdr.readableSize));
 				if (memcmp(chkHdr.type, "MESH", 4) == 0)
 				{

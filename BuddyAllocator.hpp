@@ -22,7 +22,9 @@ private:
 	};
 private:
 	Node* firstFree[LEVELS] = {nullptr};
-	std::bitset<(1 << LEVELS) - 1> freeBits = {true};
+	std::bitset<(1 << LEVELS) - 1> zeroBits = {false};  // 0 bits for resetting.
+	std::bitset<(1 << LEVELS) - 1> freeBits = {true};   // One bit per block keeping track of whether it's free or not
+	std::bitset<(1 << LEVELS) - 1> splitBits = {false}; // One bit per block keeping track of whether it's been split or not.
 	size_t unusedMemory = MAX_BLOCK;
 	std::mutex lock;
 
@@ -37,10 +39,11 @@ public:
 		delete[] this->mem;
 	};
 
+	template <class T>
 	[[nodiscard]]
-	void* alloc(size_t size)
+	T* alloc(size_t size)
 	{
-		std::scoped_lock<std::mutex> lock(this->lock);
+		std::scoped_lock<std::mutex> lk(this->lock);
 
 		if (size == 0 || size > MAX_BLOCK)
 			return nullptr;
@@ -51,12 +54,23 @@ public:
 
 		unusedMemory -= pow2Size(size);
 		firstFree[lvl] = node->next;
-		return reinterpret_cast<void*>(node);
+		splitBits[indexOf(node, lvl)] = false;
+
+		return reinterpret_cast<T*>(node);
 	};
+
+	template <class T>
+	[[nodiscard]]
+	T* calloc(size_t size)
+	{
+		auto ptr = this->alloc<T>(size);
+		memset(ptr, 0, pow2Size(size));
+		return ptr;
+	}
 
 	void free(void* ptr, size_t size)
 	{
-		std::scoped_lock<std::mutex> lock(this->lock);
+		std::scoped_lock<std::mutex> lk(this->lock);
 
 		if (!ptr) return; // freeing nullptr
 
@@ -69,8 +83,31 @@ public:
 		unusedMemory += pow2Size(size);
 	};
 
+	void free(void* ptr)
+	{
+		std::scoped_lock<std::mutex> lk(this->lock);
+
+		if (!ptr) return; // freeing nullptr
+
+		int lvl = 0;
+		for (lvl = 0; ; lvl++)
+		{
+			if (splitBits[indexOf((Node*)ptr, lvl)] == false)
+				break;
+		}
+
+		Node* freed = (Node*)ptr;
+
+		mergeNode(freed, lvl);
+		size_t size = sizeOfLevel(lvl);
+		unusedMemory += pow2Size(size);
+	}
+
 	void reset()
 	{
+		freeBits  &= zeroBits;
+		splitBits &= zeroBits;
+
 		freeBits[0] = true;
 
 		for (auto& n : firstFree) n = nullptr;
@@ -110,6 +147,7 @@ private:
 		{
 			Node* retNode = this->firstFree[level];
 			freeBits[indexOf(retNode, level)] = false;
+			splitBits[indexOf(retNode, level)] = true;
 			return retNode;
 		}
 		if (level == 0)
@@ -127,6 +165,9 @@ private:
 		first[0] = Node{nullptr, second};
 		second[0] = Node{nullptr, nullptr};
 		freeBits[indexOf(second, level)] = true;
+
+		freeBits[indexOf(first, level)] = false;
+		splitBits[indexOf(first, level)] = true;
 		firstFree[level] = first;
 
 		return first;
@@ -140,8 +181,14 @@ private:
 
 	void mergeNode(Node* node, int level)
 	{
+		if (node == nullptr)
+		{
+			return;
+		}
+
 		const size_t index = indexOf(node, level);
 		freeBits[index] = true;
+		splitBits[index] = false;
 
 		if (firstFree[level]) firstFree[level]->prev = node;
 		node[0] = Node{nullptr, firstFree[level] == node ? nullptr : firstFree[level]};
