@@ -115,8 +115,10 @@ public:
 		firstFree[0][0] = Node{nullptr, nullptr};
 		unusedMemory = MAX_BLOCK;
 	}
-
-	size_t getUnusedMemory() { return unusedMemory; }
+	
+	consteval size_t getMaxMemory() const { return MAX_BLOCK; }
+	size_t getUsedMemory() const { return MAX_BLOCK - unusedMemory; }
+	size_t getUnusedMemory() const { return unusedMemory; }
 private:
 	static size_t pow2Size(size_t size)
 	{

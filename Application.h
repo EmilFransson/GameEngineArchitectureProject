@@ -40,6 +40,7 @@ private:
 	template<typename T>
 	void RenderPoolAllocatorProgressBar(std::unique_ptr<PoolAllocator<T>>& poolAllocator) noexcept;
 	void RenderStackAllocatorProgressBar() noexcept;
+	void RenderBuddyAllocatorProgressBar() noexcept;
 private:
 	bool m_Running;
 	std::unique_ptr<Time> m_timer;
