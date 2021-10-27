@@ -31,7 +31,7 @@ public:
 	Application() noexcept;
 	~Application() noexcept = default;
 	void Run() noexcept;
-	void Render3D(float, std::vector<ParticleSystem*>) noexcept;
+	void Render3D(float, std::vector<ParticleSystem*>&) noexcept;
 	void Render2D() noexcept;
 	void CleanUp();
 private:

@@ -146,7 +146,7 @@ void Application::Run() noexcept
 					1.0f,
 					randNum
 					));
-				if(particleSystems[i])
+				if (particleSystems[i])
 					particleSystems[i]->AddParticles();
 			}
 		}
@@ -174,7 +174,7 @@ void Application::Run() noexcept
 	}
 }
 
-void Application::Render3D(float delta, std::vector<ParticleSystem*> particleSystems) noexcept
+void Application::Render3D(float delta, std::vector<ParticleSystem*>& particleSystems) noexcept
 {
 	//For every model.
 	for (uint32_t i{ 0u }; i < m_pModels.size(); i++)
