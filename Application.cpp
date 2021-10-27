@@ -134,21 +134,23 @@ void Application::Run() noexcept
 						));
 				}
 			}
-			
-			//Create particles only if in level1.
-			std::uniform_int_distribution<int> distributionNrOfObjects(20, 50);
-			
-			size_t nrOfParticleSystems = 4;
-			for (size_t i = 0; i < nrOfParticleSystems; i++)
+			else
 			{
-				size_t randNum = distributionNrOfObjects(generator);
-				particleSystems.push_back(StackAllocator::GetInstance()->New<ParticleSystem>(
-					DirectX::XMFLOAT3(10.0f * i, 10.0f, 10.0f),
-					1.0f,
-					randNum
-					));
-				if(particleSystems[i])
-					particleSystems[i]->AddParticles();
+				//Create particles only if in level1.
+				std::uniform_int_distribution<int> distributionNrOfObjects(20, 50);
+
+				size_t nrOfParticleSystems = 4;
+				for (size_t i = 0; i < nrOfParticleSystems; i++)
+				{
+					size_t randNum = distributionNrOfObjects(generator);
+					particleSystems.push_back(StackAllocator::GetInstance()->New<ParticleSystem>(
+						DirectX::XMFLOAT3(10.0f * i, 10.0f, 10.0f),
+						1.0f,
+						randNum
+						));
+					if (particleSystems[i])
+						particleSystems[i]->AddParticles();
+				}
 			}
 		}
 		static const FLOAT color[4] = {0.0f, 0.0f, 0.0f, 1.0f};
