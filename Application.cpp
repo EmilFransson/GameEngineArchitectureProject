@@ -246,6 +246,7 @@ void Application::Render2D() noexcept
 	RenderPoolAllocatorProgressBar(ResourceManager::m_pTextureAllocator);
 	RenderPoolAllocatorProgressBar(ResourceManager::m_pMaterialAllocator);
 	RenderPoolAllocatorProgressBar(ResourceManager::m_pMeshOBJAllocator);
+	RenderBuddyAllocatorProgressBar();
 	ResourceManager::DisplayStateUI();
 	//Can be reinstated if we'd need it for any assignment3-profiling.
 	//DisplayProfilingResults();
@@ -303,6 +304,21 @@ void Application::RenderStackAllocatorProgressBar() noexcept
 	static float progress = 0.0f;
 
 	progress = static_cast<float>(StackAllocator::GetInstance()->GetStackCurrentSize() / static_cast<float>(StackAllocator::GetInstance()->GetStackMaxSize()));
+	progress = 1.0f - progress;
+
+	ImGui::ProgressBar(progress, ImVec2(0.0f, 0.0f));
+	ImGui::SameLine(0.0f, ImGui::GetStyle().ItemInnerSpacing.x);
+	ImGui::Text("Bytes free.");
+
+	ImGui::End();
+}
+
+void Application::RenderBuddyAllocatorProgressBar() noexcept
+{
+	ImGui::Begin("Buddy Allocator memory usage");
+	static float progress = 0.0f;
+
+	progress = static_cast<float>(ResourceManager::buddyAllocator.getUsedMemory()) / static_cast<float>(ResourceManager::buddyAllocator.getMaxMemory());
 	progress = 1.0f - progress;
 
 	ImGui::ProgressBar(progress, ImVec2(0.0f, 0.0f));
