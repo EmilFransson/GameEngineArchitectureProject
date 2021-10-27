@@ -81,6 +81,7 @@ Application::Application() noexcept
 
 void Application::CleanUp()
 {
+	m_pModels.clear();
 	ResourceManager::Get()->CleanUp();
 	StackAllocator::GetInstance()->FreeAllMemory();
 }
@@ -133,21 +134,23 @@ void Application::Run() noexcept
 						));
 				}
 			}
-			
-			//Create particles only if in level1.
-			std::uniform_int_distribution<int> distributionNrOfObjects(20, 50);
-			
-			size_t nrOfParticleSystems = 4;
-			for (size_t i = 0; i < nrOfParticleSystems; i++)
+			else
 			{
-				size_t randNum = distributionNrOfObjects(generator);
-				particleSystems.push_back(StackAllocator::GetInstance()->New<ParticleSystem>(
-					DirectX::XMFLOAT3(10.0f * i, 10.0f, 10.0f),
-					1.0f,
-					randNum
-					));
-				if (particleSystems[i])
-					particleSystems[i]->AddParticles();
+				//Create particles only if in level1.
+				std::uniform_int_distribution<int> distributionNrOfObjects(20, 50);
+
+				size_t nrOfParticleSystems = 4;
+				for (size_t i = 0; i < nrOfParticleSystems; i++)
+				{
+					size_t randNum = distributionNrOfObjects(generator);
+					particleSystems.push_back(StackAllocator::GetInstance()->New<ParticleSystem>(
+						DirectX::XMFLOAT3(10.0f * i, 10.0f, 10.0f),
+						1.0f,
+						randNum
+						));
+					if (particleSystems[i])
+						particleSystems[i]->AddParticles();
+				}
 			}
 		}
 		static const FLOAT color[4] = {0.0f, 0.0f, 0.0f, 1.0f};
@@ -166,6 +169,7 @@ void Application::Run() noexcept
 
 		if (!Window::OnUpdate())
 		{
+			m_pModels.clear();
 			m_Running = false;
 		}
 
@@ -188,10 +192,16 @@ void Application::Render3D(float delta, std::vector<ParticleSystem*>& particleSy
 		//Bind texture for this model.
 		m_pModels[i]->BindTexture();
 		//Bind the meshes in the model one by one and draw them.
+		std::string tempFileName = m_pModels[i]->m_pMeshes[0]->m_FileName;
 		for (uint32_t j{ 0u }; j < m_pModels[i]->GetNrOfMeshes(); j++)
 		{
+			std::lock_guard<std::mutex> lock(ResourceManager::Get()->m_FilenameToMutexMap[tempFileName]);
+			if (m_pModels[i]->m_pMeshes[j] == nullptr)
+				continue;
 			m_pModels[i]->BindMesh(j);
 			RenderCommand::DrawIndexed(m_pModels[i]->GetNrOfMeshIndices(j));
+			if (j + 1 <= m_pModels[i]->m_pMeshes.size() - 1)
+				tempFileName = m_pModels[i]->m_pMeshes[j + 1]->m_FileName;
 		}
 	}
 

@@ -20,6 +20,8 @@ std::unique_ptr<PoolAllocator<MeshOBJ>> ResourceManager::m_pMeshOBJAllocator = s
 std::unique_ptr<PoolAllocator<Material>> ResourceManager::m_pMaterialAllocator = std::make_unique<PoolAllocator<Material>>("MaterialAllocator", 100);
 BuddyAllocator ResourceManager::buddyAllocator = BuddyAllocator();
 ResourceManager::BuddyFree ResourceManager::buddyFree = {};
+std::mutex ResourceManager::m_GuidToResourceMutex;
+std::map<std::string, std::mutex> ResourceManager::m_FilenameToMutexMap;
 
 void ResourceManager::Init()
 {
@@ -59,7 +61,20 @@ void ResourceManager::FreeMemory() noexcept
 	}
 	for (auto& key : keys)
 	{
-		m_GUIDToResourceMap.erase(key);
+		if (m_GUIDToResourceMap[key]->GetType() == "TEX")
+		{
+			std::lock_guard<std::mutex> lock(m_GUIDToMutexMap[key]);
+			m_GUIDToResourceMap.erase(key);
+		}
+		else if (m_GUIDToResourceMap[key]->GetType() == "MESH")
+		{
+			std::lock_guard<std::mutex> lock(m_FilenameToMutexMap[dynamic_pointer_cast<MeshOBJ>(m_GUIDToResourceMap[key])->m_FileName]);
+			m_GUIDToResourceMap.erase(key);
+		}
+		else
+		{
+			m_GUIDToResourceMap.erase(key);
+		}
 	}
 }
 
@@ -68,6 +83,8 @@ void ResourceManager::DisplayStateUI()
 	std::vector<std::pair<std::string, long>> textures;
 	std::vector<std::pair<std::string, long>> meshes;
 	std::vector<std::pair<std::string, long>> materials;
+
+	std::unique_lock<std::mutex> lock(m_GuidToResourceMutex);
 	for (auto it = s_Instance->m_GUIDToResourceMap.begin(); it != s_Instance->m_GUIDToResourceMap.end(); ++it)
 	{
 		std::pair<std::string, long> pair;
@@ -169,6 +186,7 @@ std::shared_ptr<Texture2D> ResourceManager::Load(const std::pair<uint64_t, uint6
 		{
 			if (m_GUIDToPackageMap.contains(guid))
 			{
+				std::unique_lock<std::mutex> lock2(m_GuidToResourceMutex);
 				result = LoadResourceFromPackage(guid);
 				if (result == true)
 				{
@@ -189,6 +207,7 @@ std::shared_ptr<Texture2D> ResourceManager::Load(const std::pair<uint64_t, uint6
 		}
 		else
 		{
+			std::unique_lock<std::mutex> lock2(m_GuidToResourceMutex);
 			if (LoadResourceFromPackage(ConvertGUIDToPair(m_FileNameToGUIDMap["Grey.png"])))
 			{
 				return dynamic_pointer_cast<Texture2D>(m_GUIDToResourceMap[ConvertGUIDToPair(m_FileNameToGUIDMap["Grey.png"])]);
@@ -244,16 +263,18 @@ std::shared_ptr<MeshOBJ> ResourceManager::Load(const std::pair<uint64_t, uint64_
 					}
 					if (strcmp(meshHeader.materialName, "") != 0)
 					{
+						std::unique_lock<std::mutex> lock(m_GuidToResourceMutex);
 						m_GUIDToResourceMap[guid] = dynamic_pointer_cast<Resource>(std::shared_ptr<MeshOBJ>(m_pMeshOBJAllocator->New(vertices,
 																				   indices, 
 																				   Load<Material>(ConvertGUIDToPair(m_FileNameToGUIDMap[meshHeader.materialName])),
-																				   meshHeader.meshName, "MESH"), [](MeshOBJ* pData) {
+																				   meshHeader.meshName, objName.get(), "MESH"), [](MeshOBJ* pData) {
 																				   m_pMeshOBJAllocator->Delete(pData);
 																					}));
 					}
 					else
 					{
-						m_GUIDToResourceMap[guid] = dynamic_pointer_cast<Resource>(std::shared_ptr<MeshOBJ>(m_pMeshOBJAllocator->New(vertices, indices, nullptr, meshHeader.meshName, "MESH"),
+						std::unique_lock<std::mutex> lock(m_GuidToResourceMutex);
+						m_GUIDToResourceMap[guid] = dynamic_pointer_cast<Resource>(std::shared_ptr<MeshOBJ>(m_pMeshOBJAllocator->New(vertices, indices, nullptr, meshHeader.meshName, objName.get(), "MESH"),
 																				   [](MeshOBJ* pData){
 																				   m_pMeshOBJAllocator->Delete(pData);
 																					}));
@@ -570,6 +591,7 @@ void ResourceManager::tFindResource(std::string filename, std::string extension,
 	{
 		std::vector<std::shared_ptr<MeshOBJ>> temp = MeshOBJ::Create(filename);
 		
+		std::lock_guard<std::mutex> lock(m_FilenameToMutexMap[filename]);
 		(*memoryVec).clear();
 		for (size_t i = 0; i < temp.size(); i++)
 		{
@@ -580,6 +602,7 @@ void ResourceManager::tFindResource(std::string filename, std::string extension,
 	}
 	else if (extension == ".png" || extension == ".jpg")
 	{
+		//std::lock_guard<std::mutex> lock(m_GUIDToMutexMap[filename]);
 		*memory = Texture2D::Create(filename);
 	}
 }

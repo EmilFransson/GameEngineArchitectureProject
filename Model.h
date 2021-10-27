@@ -15,8 +15,8 @@ public:
 	size_t GetNrOfMeshes();
 	uint64_t GetNrOfMeshIndices(uint32_t); //Returns the number of indices of the given mesh.
 	DirectX::XMMATRIX GetWMatrix();
-private:
 	std::vector<std::shared_ptr<MeshOBJ>> m_pMeshes;
+private:
 	std::shared_ptr<Texture2D> m_pTexture;
 
 	DirectX::XMFLOAT3 m_scale;

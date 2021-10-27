@@ -10,12 +10,13 @@ Mesh::Mesh(const std::string& assetName, std::string type) noexcept
 {
 }
 
-MeshOBJ::MeshOBJ(const std::vector<objl::Vertex>& vertices, const std::vector<unsigned int> indices, const std::shared_ptr<Material>& pMaterial, std::string fileName, std::string type) noexcept
-	: Mesh{fileName, type},
+MeshOBJ::MeshOBJ(const std::vector<objl::Vertex>& vertices, const std::vector<unsigned int> indices, const std::shared_ptr<Material>& pMaterial, std::string assetName, std::string fileName, std::string type) noexcept
+	: Mesh{assetName, type},
 	  m_NrOfIndices{ indices.size() }, 
 	  m_Strides{ sizeof(objl::Vertex)}, 
 	  m_pMaterial{pMaterial}, 
-	  m_FileName{ fileName }
+	  m_FileName{ fileName },
+	  m_AssetName{assetName}
 {
 	D3D11_BUFFER_DESC vertexBufferDescriptor{};
 	vertexBufferDescriptor.ByteWidth = sizeof(objl::Vertex) * static_cast<UINT>(vertices.size());
@@ -56,7 +57,7 @@ MeshOBJ::MeshOBJ(const std::vector<objl::Vertex>& vertices, const std::vector<un
 void MeshOBJ::BindInternals(const uint8_t slot) noexcept
 {
 	static const UINT offset = 0u;
-	std::lock_guard<std::mutex> lock(ResourceManager::Get()->m_FilenameToMutexMap[m_FileName]);
+	//std::lock_guard<std::mutex> lock(ResourceManager::Get()->m_FilenameToMutexMap[m_FileName]);
 	CHECK_STD(Graphics::GetContext()->IASetVertexBuffers(slot, 1u, m_pVertexBuffer.GetAddressOf(), &m_Strides, &offset));
 	CHECK_STD(Graphics::GetContext()->IASetIndexBuffer(m_pIndexBuffer.Get(), DXGI_FORMAT::DXGI_FORMAT_R32_UINT, 0u));
 }
@@ -64,4 +65,10 @@ void MeshOBJ::BindInternals(const uint8_t slot) noexcept
 std::vector<std::shared_ptr<MeshOBJ>> MeshOBJ::Create(std::string& fileName) noexcept
 {
 	return ResourceManager::Get()->LoadMultiple<MeshOBJ>(fileName);
+}
+
+const uint64_t MeshOBJ::GetNrOfIndices() const noexcept
+{
+	//std::lock_guard<std::mutex> lock(ResourceManager::Get()->m_FilenameToMutexMap[m_FileName]);
+	return m_NrOfIndices;
 }

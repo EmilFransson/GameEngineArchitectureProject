@@ -59,10 +59,16 @@ T* StackAllocator::New(Arguments&&... args)
     std::lock_guard<std::mutex> lock(m_Lock);
     //Check if we have enough space on the stack for the object.
     //If not, return nullptr and nothing happens.
-    if (m_pMemoryStack->m_stackSize < m_pMemoryStack->m_currentSize + sizeof(T) + sizeof(ObjectHeader))
+    size_t newSize = m_pMemoryStack->m_currentSize + sizeof(T) + sizeof(ObjectHeader);
+    if (m_pMemoryStack->m_stackSize < newSize)
     {
         std::cout << "Error, not enough memory free on the Stack." << std::endl;
         return nullptr;
+    }
+    //If less than 10% memory remain.
+    else if (m_pMemoryStack->m_stackSize * (9.0f / 10.0f) < (float)newSize)
+    {
+        std::cout << "Warning! Less than 10% memory left on the stack." << std::endl;
     }
 
     //Get an address for the new object and then move the walker by the size of the object.

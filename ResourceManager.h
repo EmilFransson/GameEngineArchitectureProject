@@ -45,7 +45,7 @@ private:
 	void FreeMemory() noexcept;
 private:
 	static ResourceManager* s_Instance;
-
+	static std::mutex m_GuidToResourceMutex;
 	std::map<std::pair<uint64_t, uint64_t>, std::shared_ptr<Resource>> m_GUIDToResourceMap;
 	std::map<std::pair<uint64_t, uint64_t>, std::string> m_GUIDToPackageMap;
 	std::map<std::string, std::vector<std::string>> m_OBJToMeshesMap;
@@ -90,7 +90,7 @@ private:
 		
 	static BuddyFree buddyFree;
 public:
-	std::map<std::string, std::mutex> m_FilenameToMutexMap; //Used for objs
+	static std::map<std::string, std::mutex> m_FilenameToMutexMap; //Used for objs
 	std::map<std::pair<uint64_t, uint64_t>, std::mutex> m_GUIDToMutexMap;	//Used for textures
 
 	void tAddJob(std::string, std::shared_ptr<Texture2D>*, std::vector<std::shared_ptr<MeshOBJ>>*);	//Called to add a new job to the queue for the threads to do.

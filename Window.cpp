@@ -155,7 +155,7 @@ LRESULT Window::HandleMessages(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam
 		UINT dwSize;
 
 		GetRawInputData((HRAWINPUT)lParam, RID_INPUT, NULL, &dwSize, sizeof(RAWINPUTHEADER));
-		LPBYTE lpb = new BYTE[dwSize];
+		LPBYTE lpb = DBG_NEW BYTE[dwSize];
 		if (lpb == NULL)
 		{
 			return 0;
